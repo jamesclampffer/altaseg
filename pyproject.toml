@@ -1,0 +1,60 @@
+[project]
+name = "masker"
+version = "0.1.0"
+description = "high res adaptive-ish scale promptable segmentation"
+requires-python = ">=3.12"
+dependencies = [
+    "torch>=2.12",
+    "torchvision",
+    "transformers>=5.0",
+
+    # core math
+    "numpy>=1.24",
+    "numba",
+    "kornia>=0.8",
+
+    # file io
+    "pillow>=10.0",
+    "pycocotools>=2.0",
+
+    # tensor compression
+    "zstandard",
+    "nvidia-nvcomp-cu12",
+
+    # general
+    "rawpy>=0.19",
+    "flask",
+
+    # self tests
+    "pytest",
+    "pytest-cov",
+    "pytest-timeout",
+    "playwright",
+]
+
+# Web UI by default
+[project.scripts]
+masker = "masker.cli:main"
+masker-eval = "masker.execution.evaluate:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["masker*"]
+
+[tool.setuptools.package-data]
+"masker.web" = ["*.js", "*.html", "*.css"]
+"masker.execution" = ["*.json"]
+
+[tool.coverage.run]
+source = ["masker"]
+branch = true
+
+[tool.pytest.ini_options]
+timeout = 300
+pythonpath = [".", "tests", "tests/masker"]
+markers = [
+    "integration: needs GPU+SAM3",
+]

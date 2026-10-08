@@ -1,0 +1,258 @@
+<!doctype html>
+<!--
+ * Copyright 2026 Jim Clampffer. Created 2026-10-07.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AltaSeg</title>
+<link rel="stylesheet" href="/webui.css">
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div class="hrow g8"><div class="logo" title="logo placeholder"></div><span class="title">AltaSeg</span></div>
+    <div class="vd"></div>
+    <div class="hrow">
+      <input id="path" class="mono" spellcheck="false" placeholder="path to an image on the server's machine" title="path to an image on the server's machine (Enter loads)">
+      <button id="loadbtn" class="btn-sm" title="load the image at this path (Enter)">Load</button>
+    </div>
+    <div class="hrow g4">
+      <button class="navbtn" id="prev" title="previous image in the directory">&#8249;</button>
+      <span id="imgidx" class="mono-dim"></span>
+      <button class="navbtn" id="next" title="next image in the directory">&#8250;</button>
+    </div>
+    <div class="hrow" id="maskwrap">
+      <span id="maskpill" class="mono-dim x" title="Zephyr mask files in this directory &#8212; ignored by scans and batches; click to view one"></span>
+      <div class="pop menu" id="maskmenu"></div>
+    </div>
+    <div class="grow"></div>
+    <div id="batchpill" class="ok"><span class="dot"></span><span id="batchpilltext" class="mono"></span></div>
+    <span id="dims" class="mono-dim"></span>
+    <button id="reviewbtn" class="btn-sm">Review batch &#9656;</button>
+  </div>
+
+  <div id="main">
+    <div id="stage">
+    <div id="canvaswrap">
+      <canvas id="view"></canvas>
+      <div class="float" id="sweepstrip"><span class="dot"></span><span id="sweeptext" class="mono"></span><div class="bar"><div id="sweepbar"></div></div><span id="sweepcounts" class="mono-dim"></span><button id="sweepcancel" class="btn-sm danger">Cancel</button></div>
+      <div class="float" id="modehint"></div>
+      <div class="pop" id="selpop"><span id="sellbl"></span><div class="vd"></div><span class="item" id="seldrop">&#10005; drop</span><span class="item" id="selrep">&#8635; re-prompt</span><span class="item" id="seltouch" title="touch up this instance's mask by hand: brush or rectangle, add or remove">&#9998; touch up &#9662;</span>
+        <div class="pop menu" id="touchmenu">
+          <div class="item" id="tbrushadd" title="paint mask with a brush">Brush &#183; add</div>
+          <div class="item" id="tbrushdel" title="erase mask with a brush">Brush &#183; remove</div>
+          <div class="item" id="trectadd" title="fill a dragged rectangle">Rect &#183; add</div>
+          <div class="item" id="trectdel" title="clear a dragged rectangle">Rect &#183; remove</div>
+        </div>
+      </div>
+      <div class="float" id="zoomctl"><div id="zin">+</div><div id="zout">&#8722;</div><div class="fit" id="zfit">FIT</div><div class="fit" id="zlock" title="lock view for manual mask edit">EDIT</div></div>
+      <div class="float" id="zoompill"><input type="range" id="zslider" min="0" max="1000" step="1" value="0" disabled title="zoom, fit to 8&#215;; the wheel over the image also zooms, drag pans"><span id="zoomtext" class="mono-dim"></span></div>
+      <div class="float" id="modelview" title="center of the model input at 1 model px = 1 screen px"><canvas id="modelcv" width="400" height="400"></canvas><span id="modeltext"></span><span id="modelhide" title="collapse the model input view">&#9662;</span></div>
+      <div class="float x" id="modelpill" title="expand the model input view">model input &#9652;</div>
+      <div class="float" id="drawbar">
+        <div class="item" id="dpoly" title="polygon: click vertices; click the first again to close">Poly</div>
+        <div class="item" id="dline" title="line: drag between two points; width follows the size slider">Line</div>
+        <div class="item on" id="dbrush" title="brush: drag to paint; diameter follows the size slider">Brush</div>
+        <div class="item" id="drect" title="rectangle: drag a box to fill it">Rect</div>
+        <div class="vd"></div>
+        <div class="item" id="derase" title="erase mode: shapes clear mask instead of painting it">Erase</div>
+        <input type="range" id="dsize" min="1" max="64" step="1" value="16" title="brush / line diameter in screen px">
+        <span class="mono-dim" id="dsizeval" title="brush / line diameter in screen px">16</span>
+        <div class="vd"></div>
+        <button id="dundo" class="btn-sm" title="undo the last shape">&#8630;</button>
+        <button id="dredo" class="btn-sm" title="redo">&#8631;</button>
+        <button id="dapply" class="btn-pri" title="rasterize the drawing into the mask and unlock">Apply</button>
+        <button id="dsave" class="btn-pri" title="write the touched-up mask into the instance's annotation and unlock">Save manual updates</button>
+        <button id="dcancel" class="btn-sm" title="discard the drawing and unlock">&#10005;</button>
+      </div>
+    </div>
+    <div id="filmstrip"></div>
+    </div>
+
+    <div id="rail">
+      <div id="promptpanel">
+        <div class="spread" id="prompthead"><span class="ptitle">PROMPT</span><span class="mono-dim">&#9166; run</span></div>
+        <div id="tabs" class="seg">
+          <div data-mode="text" class="on">Text</div><div data-mode="exemplar">Box</div><div data-mode="point">Point</div><div data-mode="reprompt">Refine</div><div data-mode="erase">Erase</div>
+        </div>
+        <div id="promptrow" class="hrow"><input id="promptText" class="grow" placeholder="describe a class&#8230; e.g. 'pallet'" title="text prompt naming the class to segment"><button id="addprompt" title="stage the term as a class chip without running a scan (Shift+Enter)">+ Add</button><button id="run" class="btn-pri">Run</button></div>
+        <div id="modenote"></div>
+        <div id="chips"></div>
+        <div id="promptutil" class="spread"><button id="runall" class="btn-sm">Run all on image</button><span id="adv" class="x">Advanced &#9662;</span></div>
+        <div id="advpanel" class="card">
+          <div class="advsec" title="text sweep over the image's recrop grid; accepted detections draw cyan"><span class="passdot p1"></span>pass 1 &#183; sweep</div>
+          <div class="advrow"><span title="grid recrop overlap fraction">overlap</span><input type="number" id="sweepoverlap" min="0" max="0.9" step="0.05" title="grid recrop overlap fraction">
+            <span title="grid recrop size as a multiple of the model input; below 1 sweeps smaller tiles upscaled to the model input">downscale</span><input type="number" id="sweepdownscale" min="0" step="0.5" title="grid recrop size as a multiple of the model input; below 1 sweeps smaller tiles upscaled to the model input"></div>
+          <div class="advsec" title="ambiguous fragments clustered and re-prompted on context recrops; keeps draw yellow"><span class="passdot p2"></span>pass 2 &#183; re-prompt</div>
+          <div class="advrow"><span title="re-prompt recrop size as a multiple of the fragment cluster's bbox">expand</span><input type="number" id="sweepexpand" min="1" step="0.5" title="re-prompt recrop size as a multiple of the fragment cluster's bbox">
+            <span title="size re-prompt recrops so objects present inside this scale band (fractions of the model input); blank uses the expand multiple">band</span><input type="number" id="sweepbandlo" placeholder="0.07" min="0" max="1" step="0.01" title="low edge of the target scale band (fraction of the model input); blank uses the expand multiple"><span title="target scale band, low to high edge">&#8211;</span><input type="number" id="sweepbandhi" placeholder="0.28" min="0" max="1" step="0.01" title="high edge of the target scale band (fraction of the model input); blank uses the expand multiple"></div>
+          <div class="advrow"><span title="compose several re-prompt recrops into one model input">pack</span><select id="sweeppack" title="compose several re-prompt recrops into one model input"><option value="" selected>off</option><option value="2">2&#215;2</option><option value="3">3&#215;3</option></select>
+            <span title="recrop-tighten retries when a re-detection covers more than one object; 0 disables">backoff</span><input type="number" id="sweepbackoff" min="0" step="1" title="recrop-tighten retries when a re-detection covers more than one object; 0 disables">
+            <span title="back-off recrop scale per retry; below 1 zooms in, above 1 widens context">retry scale</span><input type="number" id="sweepbackoffscale" min="0.01" step="0.05" title="back-off recrop scale per retry; below 1 zooms in, above 1 widens context"></div>
+          <div class="advrow"><label title="keep re-prompt detections outside the cluster bbox when they clear every existing mask by the gap"><input type="checkbox" id="sweepnovel"> novel</label>
+            <span title="min mask gap (original px) between a novel detection and any existing mask; blank uses the seam-band width">gap px</span><input type="number" id="sweepnovelgap" min="0" step="1" title="min mask gap (original px) between a novel detection and any existing mask; blank uses the seam-band width"></div>
+          <div class="advrow"><label title="pass 2: augment a re-prompt recrop's text prompt with accepted instances inside the recrop as exemplar boxes"><input type="checkbox" id="sweeprepromptexemplar"> re-prompt exemplars</label>
+            <span title="exemplar boxes per re-prompt recrop: the nearest to the recrop center, highest confidence first">max</span><input type="number" id="sweeprepromptexemplarmax" min="1" step="1" title="exemplar boxes per re-prompt recrop: the nearest to the recrop center, highest confidence first"></div>
+          <div class="advsec" title="how passes 2 and 3 match detections against already-kept masks">duplicate gate &#183; passes 2&#8211;3</div>
+          <div class="advrow"><span title="mask IoU at or above which a re-detection duplicates an accepted instance">dup iou</span><input type="number" id="sweepdupiou" min="0" max="1" step="0.05" title="mask IoU at or above which a re-detection duplicates an accepted instance">
+            <span title="keep-inside-box membership point: mask centroid or bbox center">centroid</span><select id="sweepcentroid" title="keep-inside-box membership point: mask centroid or bbox center"><option value="mask">mask</option><option value="box">box</option></select></div>
+          <div class="advrow"><label title="drop a re-detection mostly contained in an accepted mask (or containing one) even when their IoU is low"><input type="checkbox" id="sweepiosgate"> ios gate</label>
+            <span title="containment threshold (mask intersection over smaller area) for the ios gate">dup ios</span><input type="number" id="sweepdupios" min="0" max="1" step="0.05" title="containment threshold (mask intersection over smaller area) for the ios gate"></div>
+          <div class="advsec" title="exemplar-guided recovery around the settled instances; keeps draw magenta"><span class="passdot p3"></span>pass 3 &#183; exemplar sweep</div>
+          <div class="advrow"><label title="pass 3: re-prompt exemplar-centered recrops around the settled instances with the text prompt plus exemplar boxes"><input type="checkbox" id="sweepexemplar"> exemplar pass</label>
+            <span title="presented exemplar scale: recrop side = exemplar long side / frac">frac</span><input type="number" id="sweepexemplarfrac" min="0.01" max="0.99" step="0.05" title="presented exemplar scale: recrop side = exemplar long side / frac">
+            <span title="exemplar boxes per pass-3 recrop">max</span><input type="number" id="sweepexemplarmax" min="1" max="4" step="1" title="exemplar boxes per pass-3 recrop"></div>
+          <div class="advrow"><span title="pass-3 recrop-tighten retries when a keep merges pool instances or exceeds the anchor exemplar's area budget; 0 disables">ex backoff</span><input type="number" id="sweepexemplarbackoff" min="0" step="1" title="pass-3 recrop-tighten retries when a keep merges pool instances or exceeds the anchor exemplar's area budget; 0 disables">
+            <span title="pass-3 recrop scales: each planned recrop runs once per scale">scales</span><select id="sweepexemplarscales" title="pass-3 recrop scales: each planned recrop runs once per scale"><option value="1" selected>1&#215;</option><option value="1,2">1&#215;+2&#215;</option></select>
+            <span title="pass-3 shots per recrop and scale: later variants offset the recrop center and lead with a different exemplar">variants</span><input type="number" id="sweepexemplarvariants" min="1" max="9" step="1" title="pass-3 shots per recrop and scale: later variants offset the recrop center and lead with a different exemplar">
+            <span title="pass-3: drop a keep overlapping two or more settled instances when their flattened union covers at least this fraction of it">cover</span><input type="number" id="sweepexemplarcover" min="0.05" max="1" step="0.05" title="pass-3: drop a keep overlapping two or more settled instances when their flattened union covers at least this fraction of it"></div>
+          <div class="advsec" title="record keeping for this run">run</div>
+          <div class="advrow"><label title="re-run searches this image's metadata records as done"><input type="checkbox" id="ignoreprev"> ignore previous searches</label></div>
+          <div class="advrow"><label title="a completed full-image text sweep replaces the saved annotations carrying that label (staged, applied on Save; cancel or failure restores them)"><input type="checkbox" id="replaceexisting"> replace saved matches</label></div>
+        </div>
+        <div id="batchcard" class="card spread"><div><b>Scale to batch&#8230;</b><div class="s" id="batchsub">run prompts over the directory</div></div><span>&#9656;</span></div>
+      </div>
+      <div id="instpanel">
+        <div id="insthead" class="spread"><span class="ptitle">INSTANCES <span id="totalcnt" class="mono-dim"></span></span><button id="presence" class="fchip" title="per-recrop presence of the last sweep">presence</button><button id="eyeall" class="fchip">hide masks</button><button id="solo" class="fchip" title="render only the selected instance; keeps its bounds clear during touch up">solo</button><button id="outline" class="fchip" title="draw every mask as a 2px outline instead of a fill">outline</button></div>
+        <div id="instances"></div>
+        <div id="savebar" class="railsec"><button id="save" class="grow ok">Save &#183; 0 new</button><button id="export">Export &#9662;</button>
+          <div class="pop menu" id="exportmenu"><div id="exportzephyr" class="item" title="write 3DF Zephyr _mask.tiff files beside the images: the union of the chosen labels painted black (ignored)">Zephyr masks export&#8230;</div></div>
+        </div>
+        <div class="railsec">
+          <div class="spread"><span class="ptitle">LABELS</span><span id="lbltoggle" class="x">&#9662;</span></div>
+          <div id="lblbody" class="fold">
+            <div class="hrow"><input id="lblfilter" class="grow" placeholder="filter labels"><select id="lblsort" title="sort labels"><option value="name" selected>name</option><option value="count">count</option></select></div>
+            <div id="labeltree">Load an image first.</div>
+            <div class="hrow"><button id="lbldrop" class="btn-sm" disabled title="delete the ticked categories and every bbox using them, dataset-wide; children re-root to the removed label's parent">Remove selected</button></div>
+            <div class="hrow"><input id="lblnewname" class="grow" placeholder="new name"><button id="lblmerge" class="btn-sm" disabled title="2+ ticked: fold into one label dataset-wide; 1 ticked: rename">Merge/rename</button></div>
+            <div class="hrow"><input id="lblnew" class="grow" placeholder="new label name"><button id="lbladd" class="btn-sm" disabled>Add label</button></div>
+          </div>
+        </div>
+        <div class="railsec">
+          <div class="spread"><span class="ptitle">EMBED CACHE</span><span id="cachetoggle" class="x">&#9662;</span></div>
+          <div id="cachebody" class="fold"><div class="hrow g8 wrap">
+            <div class="card"><div class="h">disk</div><div class="v" id="cachedisk">&#8212;</div><div class="s" id="cachebudget"></div></div>
+            <div class="card"><div class="h">images left</div><div class="v" id="cacheimgs">&#8212;</div><div class="s">at current tiling</div></div>
+            <div class="card"><div class="h">hit rate</div><div class="v" id="cachehit">&#8212;</div><div class="s" id="cachecounts"></div></div>
+            <div class="card"><div class="h">tensors</div><div class="v" id="cachetensors">&#8212;</div><div class="s">on disk</div></div>
+            <div class="card"><div class="h">compression</div><div class="v" id="cacheratio">&#8212;</div><div class="s">mean, this run</div></div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="review">
+      <div id="reviewhead"><span class="t" id="reviewtitle">Review</span><span class="s" id="reviewsummary"></span><div id="reviewfilter"></div><div class="grow"></div><span class="s" id="reviewmeans"></span></div>
+      <div id="reviewstats"></div>
+      <div id="reviewempty">No batch results yet &#8212; run a batch from the workspace to populate this grid.<br><br><a href="#" id="backwork">&#8592; back to workspace</a></div>
+      <div id="reviewgrid"></div>
+    </div>
+  </div>
+
+  <div id="statusbar">
+    <span id="status" class="mono grow ell"></span><span id="saved">* saved</span>
+  </div>
+</div>
+
+<div class="overlay" id="batchmodal">
+  <div class="modal">
+    <div class="mhead"><div><div class="t" id="btitle">Start batch job</div><div class="s" id="bsub">Text prompts only &#8212; box &amp; point prompts are per-image tools</div></div><span class="x" id="bclose">&#10005;</span></div>
+    <div id="bsetup" class="mbody col">
+      <div class="col">
+        <div class="ptitle spread">DIRECTORY <button id="bbrowse" class="btn-sm">Browse&#8230;</button></div>
+        <div id="bdir" class="card mono ell"></div>
+        <div id="bdirstats" class="s"></div>
+        <label id="bwholelabel" class="s" title="queue every image in the directory instead of starting at the loaded one"><input type="checkbox" id="bwholedir"> whole directory, not from the current image</label>
+        <div class="hrow"><span class="ptitle">EXTENSIONS</span><input id="bext" placeholder="all &#8212; e.g. arw" title="only queue images with these extensions (comma or space separated, dot optional, case-insensitive); empty queues every image type"></div>
+        <div class="hrow"><span class="ptitle">MAX IMAGES</span><input type="number" id="bmax" min="1" step="1" placeholder="all" title="stop after this many queued images; empty runs to the end"></div>
+      </div>
+      <div class="col">
+        <div class="ptitle spread">CLASS PROMPTS <span><span class="x" id="bselall">all</span> <span class="x" id="bselnone">none</span></span></div>
+        <div class="hrow"><input id="bnewprompt" class="grow" placeholder="add a prompt for this batch&#8230;"><button id="bnewadd" class="btn-sm">+ Add</button></div>
+        <div id="bprompts" class="col"></div>
+      </div>
+      <div class="hrow"><label title="when the batch finishes, write 3DF Zephyr _mask.tiff files beside the images: the union of all annotated labels painted black (ignored); every mask rewritten"><input type="checkbox" id="bzephyr"> export Zephyr masks when done</label></div>
+      <div class="hrow"><span class="ptitle">DEDUP IOU</span><input type="number" id="batchdedupiou" value="0.5" min="0" max="1" step="0.05" title="mask IoU at or above which a batch detection is grouped with a saved anchor (dropped) or with other pending detections (unioned) before each save"></div>
+      <div class="card plan" id="bplan"></div>
+    </div>
+    <div id="brun" class="mbody col" style="display:none">
+      <div class="hrow g8">
+        <div class="grow col">
+          <div class="bar"><div id="bprogfill"></div></div>
+          <div id="bbar"></div>
+          <div id="bline" class="mono-dim"></div>
+        </div>
+        <div class="right"><div id="bpct" class="v"></div><div id="beta" class="s"></div></div>
+      </div>
+      <div class="hrow g8" id="bstats"></div>
+      <div class="col">
+        <div class="ptitle">COMPLETED</div>
+        <div id="bthumbs"></div>
+      </div>
+    </div>
+    <div class="mfoot" id="bfoot">
+      <button id="bcancelsetup">Cancel</button>
+      <button class="btn-pri" id="batchstart">Start batch</button>
+    </div>
+    <div class="mfoot spread" id="bfootrun" style="display:none">
+      <button id="bhide">Hide &#8212; keep running</button>
+      <div class="hrow g8">
+        <button id="batchpause">&#9208; Pause</button>
+        <button class="danger" id="bcancel">Cancel batch</button>
+        <button id="bdismiss" style="display:none" title="clear the finished run and return to batch setup">Dismiss</button>
+        <button class="btn-pri" id="bopenreview" style="display:none">Open review grid &#9656;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="redomodal">
+  <div class="modal">
+    <div class="mhead"><div><div class="t" id="redotitle"></div><div class="s">Stages this image's annotations of the class for deletion, keeps the label, then re-runs the prompt. Save commits; cancel or failure restores them.</div></div></div>
+    <div id="redobody" class="mbody"></div>
+    <div class="mfoot"><button id="redocancel">Cancel</button><button class="warn" id="redook">Clear &amp; re-run</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="zephyrmodal">
+  <div class="modal">
+    <div class="mhead"><div><div class="t">Export Zephyr masks</div><div class="s">Writes &lt;image&gt;_mask.tiff beside each image: the union of the checked labels painted black (ignored by Zephyr), the rest white. Images without checked annotations are skipped.</div></div></div>
+    <div id="zephyrlabels" class="mbody"></div>
+    <div id="zephyrforcerow"><label title="also write an all-white mask for images without checked annotations, instead of skipping them; clears stale masks"><input type="checkbox" id="zephyrforce"> rewrite every mask</label></div>
+    <div class="mfoot"><button id="zephyrcancel">Cancel</button><button class="btn-pri" id="zephyrok">Write masks</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="pickmodal">
+  <div class="modal">
+    <div class="mhead"><div><div class="t">Choose a directory</div><div class="s mono" id="pickdir"></div></div><button id="pickup">&#8593; Up</button></div>
+    <div id="picklist" class="mbody col"></div>
+    <div class="mfoot spread"><span id="pickcount" class="s"></span><div class="hrow g8"><button id="pickcancel">Cancel</button><button class="btn-pri" id="pickuse">Use this directory</button></div></div>
+  </div>
+</div>
+
+<div id="toast" class="pop ell"></div>
+
+<script>__VIEWER_JS__</script>
+<script>__DRAW_JS__</script>
+<script>const CFG = __CFG_JSON__;</script>
+<script>
+__APP_JS__
+</script>
+</body>
+</html>

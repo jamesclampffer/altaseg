@@ -1,0 +1,83 @@
+<!doctype html>
+<!--
+ * Copyright 2026 Jim Clampffer. Created 2026-10-07.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Benchmark dashboard</title>
+<link rel="stylesheet" href="/webui.css">
+</head>
+<body>
+<div id="dash">
+  <h1>Benchmark dashboard</h1>
+  <div id="paths" class="mono-dim"></div>
+  <div id="controls" class="hrow g8 wrap">
+    <label>Mode
+      <select id="mode">
+        <option value="instance">instance</option>
+        <option value="semantic">semantic</option>
+      </select>
+    </label>
+    <label>Match IoU <input type="number" id="matchiou" step="0.05" min="0.05" max="0.95"></label>
+    <label>Downscale <input type="number" id="downscale" step="0.05" min="0.05" value="1"></label>
+    <button id="reload" title="Recompute from the files on disk">Reload</button>
+    <span id="loadstatus" class="mono-dim"></span>
+  </div>
+  <div id="empty" hidden></div>
+  <div id="summary" hidden>
+    <div id="report" hidden>
+      <div id="tiles"></div>
+      <div id="charts">
+        <div class="card">
+          <div class="t">Recall by object size</div>
+          <div class="s">presented px on the model input; n = reference objects</div>
+          <div id="bandchart"></div>
+        </div>
+        <div class="card">
+          <div class="t">Per category <span class="s">(worst first)</span></div>
+          <div class="scroll"><table id="cattable"></table></div>
+        </div>
+      </div>
+    </div>
+    <h2>Images <span id="coverage" class="s"></span></h2>
+    <div class="card scroll"><table id="imgtable"></table></div>
+  </div>
+  <div id="detail" hidden>
+    <h2 id="detailname"></h2>
+    <div class="hrow g8 wrap">
+      <button id="back" title="Back to the summary tables">&#8592; summary</button>
+      <button id="prevbtn" class="navbtn" title="Previous image">&#8249;</button>
+      <button id="nextbtn" class="navbtn" title="Next image">&#8250;</button>
+      <label>Category <select id="catfilter"></select></label>
+      <label><input type="checkbox" id="layertp" checked><span class="dot9 tp"></span> matched (TP) <span id="tpcount" class="mono-dim"></span></label>
+      <label><input type="checkbox" id="layerfn" checked><span class="dot9 fn"></span> missed reference (FN)<span id="fncount" class="mono-dim"></span></label>
+      <label><input type="checkbox" id="layerfp" checked><span class="dot9 fp"></span> spurious (FP) <span id="fpcount" class="mono-dim"></span></label>
+      <span id="detailstatus" class="mono-dim"></span>
+    </div>
+    <div id="viewwrap">
+      <canvas id="view"></canvas>
+    </div>
+  </div>
+</div>
+<div id="tip" class="pop" hidden></div>
+<script>const CFG = __CFG_JSON__;</script>
+<script>__VIEWER_JS__</script>
+<script>
+__APP_JS__
+</script>
+</body>
+</html>
