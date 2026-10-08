@@ -22,6 +22,12 @@ Currently optimized for nvidia hardware, with inference falling back to cpu if i
 
 Tile image through SAM3 and reconcile overlaps, redetections, and scaling issues. This makes a handful of assumptions about nature detection of distribution. In practice they seem to be good enough to handle most of the things I've tried.
 
+
+
+https://github.com/user-attachments/assets/fdc79af7-6983-4831-a09c-b19adf8aa507
+
+
+
 ### 1 Split the high resolution into overlapping crops
 
 Crop to native model input resolution, optional scaling. Overlap at 15-20% on all edges.
